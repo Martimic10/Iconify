@@ -1,11 +1,20 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { AuthProvider, useAuth, consumePostAuthIntent } from './contexts/AuthContext'
 import AuthModal from './components/AuthModal'
-import Landing from './pages/Landing'
-import AppPage from './pages/AppPage'
 import StaticPage from './pages/StaticPage'
 import { getStaticPageFromPath, STATIC_PAGE_PATHS } from './content/staticPages'
 import { Loader2 } from 'lucide-react'
+
+const Landing = lazy(() => import('./pages/Landing'))
+const AppPage = lazy(() => import('./pages/AppPage'))
+
+function PageLoader() {
+  return (
+    <div className="auth-loading">
+      <Loader2 size={28} className="app-spin" />
+    </div>
+  )
+}
 
 function getInitialPage() {
   const staticSlug = getStaticPageFromPath(window.location.pathname)
@@ -85,16 +94,18 @@ function AppShell() {
 
   return (
     <>
-      {page === 'app' && user ? (
-        <AppPage
-          onGoBack={() => setPage('landing')}
-          onSignOut={() => signOut().then(() => setPage('landing'))}
-        />
-      ) : STATIC_PAGE_PATHS[page] ? (
-        <StaticPage slug={page} {...staticProps} />
-      ) : (
-        <Landing {...staticProps} />
-      )}
+      <Suspense fallback={<PageLoader />}>
+        {page === 'app' && user ? (
+          <AppPage
+            onGoBack={() => setPage('landing')}
+            onSignOut={() => signOut().then(() => setPage('landing'))}
+          />
+        ) : STATIC_PAGE_PATHS[page] ? (
+          <StaticPage slug={page} {...staticProps} />
+        ) : (
+          <Landing {...staticProps} />
+        )}
+      </Suspense>
 
       {showAuth && !user && (
         <AuthModal

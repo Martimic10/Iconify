@@ -2658,3 +2658,91 @@ input, textarea { font-family: var(--font-body); }
   .history-prompt { font-size: 14px; }
   .history-meta { font-size: 11px; }
 }
+
+/* ============ PERFORMANCE ============ */
+
+/* GPU-friendly marquee */
+.marquee-track {
+  will-change: transform;
+}
+
+/* Stagger float animations via CSS (avoids inline style churn) */
+.hero-float-icon:nth-child(1) { animation-duration: 3.2s; animation-delay: 0s; }
+.hero-float-icon:nth-child(2) { animation-duration: 2.8s; animation-delay: 0.5s; }
+.hero-float-icon:nth-child(3) { animation-duration: 3.5s; animation-delay: 1.0s; }
+.hero-float-icon:nth-child(4) { animation-duration: 2.6s; animation-delay: 1.5s; }
+.hero-float-icon:nth-child(5) { animation-duration: 3.1s; animation-delay: 0.3s; }
+.hero-float-icon:nth-child(6) { animation-duration: 2.9s; animation-delay: 0.8s; }
+.hero-float-icon:nth-child(7) { animation-duration: 3.3s; animation-delay: 1.3s; }
+.hero-float-icon:nth-child(8) { animation-duration: 2.7s; animation-delay: 1.8s; }
+
+.ci-icon:nth-child(1) { animation-duration: 2.6s; animation-delay: 0s; }
+.ci-icon:nth-child(2) { animation-duration: 2.95s; animation-delay: 0.25s; }
+.ci-icon:nth-child(3) { animation-duration: 3.3s; animation-delay: 0.5s; }
+.ci-icon:nth-child(4) { animation-duration: 3.65s; animation-delay: 0.75s; }
+.ci-icon:nth-child(5) { animation-duration: 2.6s; animation-delay: 1.0s; }
+.ci-icon:nth-child(6) { animation-duration: 2.95s; animation-delay: 1.25s; }
+.ci-icon:nth-child(7) { animation-duration: 3.3s; animation-delay: 1.5s; }
+.ci-icon:nth-child(8) { animation-duration: 3.65s; animation-delay: 1.75s; }
+
+/* Skip rendering off-screen landing sections until scrolled near */
+.social-proof,
+#features,
+#how-it-works,
+#pricing,
+#faq {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
+}
+
+/* No stagger animation when grid is full — dozens of cards at once is costly */
+.app-canvas--filled .icon-card {
+  animation: none;
+}
+
+.icons-grid {
+  contain: layout style;
+}
+
+/* Respect reduced motion system preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .marquee-track { animation: none; }
+  .hero-float-icon,
+  .ci-icon { animation: none; }
+}
+
+/* Mobile / touch: drop expensive blur compositing and decorative motion */
+@media (max-width: 768px) {
+  .nav-inner,
+  .app-nav,
+  .modal-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .nav-inner { background: rgba(13, 13, 20, 0.97); }
+  .app-nav { background: rgba(8, 8, 12, 0.97); }
+  .modal-overlay { background: rgba(0, 0, 0, 0.88); }
+
+  .hero-glow { display: none; }
+
+  .hero-float-icon:nth-child(n + 5) { display: none; }
+  .hero-float-icon { animation: none; }
+
+  .ci-icon { animation: none; }
+
+  .icon-card-icon--glass,
+  .icon-card--glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

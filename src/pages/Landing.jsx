@@ -11,16 +11,7 @@ import {
 } from 'lucide-react'
 
 /* ---- data ---- */
-const HERO_ICONS = [
-  { Icon: Zap, dur: '3.2s', delay: '0s' },
-  { Icon: Sparkles, dur: '2.8s', delay: '0.5s' },
-  { Icon: Palette, dur: '3.5s', delay: '1.0s' },
-  { Icon: Gem, dur: '2.6s', delay: '1.5s' },
-  { Icon: Star, dur: '3.1s', delay: '0.3s' },
-  { Icon: Flame, dur: '2.9s', delay: '0.8s' },
-  { Icon: Wand2, dur: '3.3s', delay: '1.3s' },
-  { Icon: Layers, dur: '2.7s', delay: '1.8s' },
-]
+const HERO_ICONS = [Zap, Sparkles, Palette, Gem, Star, Flame, Wand2, Layers]
 
 const BRANDS = [
   { name: 'Notion',      slug: 'notion' },
@@ -158,12 +149,8 @@ function Hero({ onGoToApp, isSignedIn }) {
           <a href="#how-it-works" className="btn-ghost">See how it works ↓</a>
         </div>
         <div className="hero-icons-row">
-          {HERO_ICONS.map(({ Icon, dur, delay }, i) => (
-            <div
-              key={i}
-              className="hero-float-icon"
-              style={{ animationDuration: dur, animationDelay: delay }}
-            >
+          {HERO_ICONS.map((Icon, i) => (
+            <div key={i} className="hero-float-icon">
               <Icon size={20} strokeWidth={1.5} />
             </div>
           ))}
@@ -187,6 +174,9 @@ function SocialProof() {
                 alt={b.name}
                 className="marquee-logo"
                 height="22"
+                width="22"
+                loading="lazy"
+                decoding="async"
                 draggable="false"
               />
             </span>
@@ -280,14 +270,7 @@ function Features() {
                 </div>
                 <div className="consistency-icon-grid">
                   {CONSISTENCY_ICONS.map((Icon, i) => (
-                    <div
-                      key={i}
-                      className="ci-icon"
-                      style={{
-                        animationDuration: `${2.6 + (i % 4) * 0.35}s`,
-                        animationDelay: `${i * 0.25}s`,
-                      }}
-                    >
+                    <div key={i} className="ci-icon">
                       <Icon size={22} strokeWidth={1.5} />
                     </div>
                   ))}

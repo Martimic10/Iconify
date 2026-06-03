@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react'
 import CheckoutModal from '../components/CheckoutModal'
 import PricingModal from '../components/PricingModal'
-import HistoryPanel from '../components/HistoryPanel'
 import { useAuth } from '../contexts/AuthContext'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { generateIconsFromPrompt } from '../lib/generateIconsAsync'
 import { generateIconsFromCatalog } from '../lib/generateIcons'
 import NounIcon from '../components/NounIcon'
@@ -47,6 +47,8 @@ import {
   Clipboard, Archive, Pin, Loader2, LogOut, History,
   Mail, Package, Code, Database,
 } from 'lucide-react'
+
+const HistoryPanel = lazy(() => import('../components/HistoryPanel'))
 
 const STYLES = [
   { id: 'outline', Icon: Square, name: 'Outline', desc: 'Clean strokes' },
@@ -293,7 +295,7 @@ function IconGradientDefs({ from, to }) {
 function CanvasStylePreview({ icons, styleId, color, styleName, colorName }) {
   return (
     <div className="canvas-preview">
-      <div className="canvas-preview-grid" key={styleId}>
+      <div className="canvas-preview-grid">
         {icons.map((icon) => (
           <div key={icon.name} className="canvas-preview-item">
             <div className={`icon-card-icon icon-card-icon--${styleId}`}>
@@ -306,6 +308,26 @@ function CanvasStylePreview({ icons, styleId, color, styleName, colorName }) {
     </div>
   )
 }
+
+const MemoCanvasStylePreview = memo(CanvasStylePreview)
+
+const IconCard = memo(function IconCard({ icon, styleId, color, onDownload }) {
+  return (
+    <div
+      className={`icon-card icon-card--${styleId}`}
+      style={{ '--card-accent': color }}
+    >
+      <button type="button" className="icon-dl" title="Download SVG" onClick={onDownload}>
+        <Download size={11} />
+      </button>
+      <div className={`icon-card-icon icon-card-icon--${styleId}`}>
+        <StyledIcon icon={icon} Icon={icon.Icon} styleId={styleId} color={color} />
+      </div>
+      <div className="icon-card-name">{icon.name}</div>
+      <div className="icon-card-accent" />
+    </div>
+  )
+})
 
 function getIconProps(styleId, color) {
   const base = { size: 36 }
@@ -606,13 +628,13 @@ export default function AppPage({ onGoBack, onSignOut }) {
     }
   }
 
-  const handleDownloadOne = async (icon) => {
+  const handleDownloadOne = useCallback(async (icon) => {
     if (needsUpgrade(count, unlockedMax)) {
       requestUpgrade(count, 'download')
       return
     }
     await downloadIconSvg(icon, { styleId: style, color })
-  }
+  }, [count, unlockedMax, style, color])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generate()
@@ -621,10 +643,11 @@ export default function AppPage({ onGoBack, onSignOut }) {
   const selectedColor = COLORS.find((c) => c.value === color)
   const selectedStyle = STYLES.find((s) => s.id === style)
 
+  const debouncedPrompt = useDebouncedValue(prompt, 350)
   const previewIcons = useMemo(() => {
-    if (prompt.trim()) return generateIconsFromCatalog(prompt, 4)
+    if (debouncedPrompt.trim()) return generateIconsFromCatalog(debouncedPrompt, 4)
     return PREVIEW_ICONS
-  }, [prompt])
+  }, [debouncedPrompt])
 
   return (
     <div
@@ -636,7 +659,9 @@ export default function AppPage({ onGoBack, onSignOut }) {
         '--icon-grad-to': '#f4a261',
       }}
     >
-      <IconGradientDefs from={color} to="#f4a261" />
+      {(style === 'gradient' || style === 'neon') && (
+        <IconGradientDefs from={color} to="#f4a261" />
+      )}
       <nav className="app-nav">
         <div className="app-nav-logo">
           <div className="app-nav-logo-icon">◆</div>
@@ -869,7 +894,7 @@ export default function AppPage({ onGoBack, onSignOut }) {
           {state === 'empty' && (
             <div className="app-empty">
               <p className="canvas-preview-label">Style preview</p>
-              <CanvasStylePreview
+              <MemoCanvasStylePreview
                 icons={previewIcons}
                 styleId={style}
                 color={color}
@@ -929,20 +954,13 @@ export default function AppPage({ onGoBack, onSignOut }) {
               </div>
               <div className="icons-grid">
                 {icons.map((icon, i) => (
-                  <div
-                    key={icon.name + i}
-                    className={`icon-card icon-card--${style}`}
-                    style={{ animationDelay: `${i * 0.04}s`, '--card-accent': color }}
-                  >
-                    <button type="button" className="icon-dl" title="Download SVG" onClick={() => handleDownloadOne(icon)}>
-                      <Download size={11} />
-                    </button>
-                    <div className={`icon-card-icon icon-card-icon--${style}`}>
-                      <StyledIcon icon={icon} Icon={icon.Icon} styleId={style} color={color} />
-                    </div>
-                    <div className="icon-card-name">{icon.name}</div>
-                    <div className="icon-card-accent" />
-                  </div>
+                  <IconCard
+                    key={`${icon.name}-${i}`}
+                    icon={icon}
+                    styleId={style}
+                    color={color}
+                    onDownload={() => handleDownloadOne(icon)}
+                  />
                 ))}
               </div>
             </>
@@ -951,14 +969,20 @@ export default function AppPage({ onGoBack, onSignOut }) {
           </>
         ) : (
           <main className="app-canvas app-canvas--history">
-            <HistoryPanel
-              items={history}
-              loading={historyLoading}
-              onLoad={loadGeneration}
-              onDelete={handleDeleteGeneration}
-              styleNameFor={styleNameFor}
-              colorNameFor={colorNameFor}
-            />
+            <Suspense fallback={
+              <div className="generating">
+                <Loader2 size={28} className="app-spin" />
+              </div>
+            }>
+              <HistoryPanel
+                items={history}
+                loading={historyLoading}
+                onLoad={loadGeneration}
+                onDelete={handleDeleteGeneration}
+                styleNameFor={styleNameFor}
+                colorNameFor={colorNameFor}
+              />
+            </Suspense>
           </main>
         )}
       </div>
